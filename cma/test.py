@@ -234,22 +234,25 @@ def various_doctests():
     Both condition alleviation transformations are applied during this
     test, first in iteration 62, second in iteration 257:
 
-        >>> import cma
+        >>> import cma, warnings
         >>> ftabletrot = cma.fitness_transformations.Rotated(cma.ff.tablet, seed=10)
         >>> es = cma.CMAEvolutionStrategy(4 * [1], 1, {
         ...                                   'tolconditioncov':False,
         ...                                   'seed': 8,
         ...                                   'CMA_mirrors': 0,
+        ...                                   'CMA_diagonal_decoding': False,
         ...                                   'ftarget': 1e-9,
         ...                                })  # doctest:+ELLIPSIS
         (4_w...
-        >>> while not es.stop() and es.countiter < 82:
+        >>> while not es.stop() and es.countiter < 83:
         ...    X = es.ask()
         ...    es.tell(X, [cma.ff.elli(x, cond=1e22) for x in X])  # doctest:+ELLIPSIS
-        NOTE ...iteration=81...
-        >>> while not es.stop():
-        ...    X = es.ask()
-        ...    es.tell(X, [ftabletrot(x) for x in X])  # doctest:+ELLIPSIS
+        NOTE ...iteration=82...
+        >>> with warnings.catch_warnings():
+        ...     warnings.filterwarnings('ignore', lineno=347)
+        ...     while not es.stop():
+        ...         X = es.ask()
+        ...         es.tell(X, [ftabletrot(x) for x in X])  # doctest:+ELLIPSIS
         >>> assert es.countiter <= 344 and 'ftarget' in es.stop(), (
         ...             "transformation bug in alleviate_condition?",
         ...             es.countiter, es.stop())
@@ -270,6 +273,11 @@ def various_doctests():
     >>> es.optimize(f)  # doctest:+ELLIPSIS
     Iterat #Fevals   function value ...
     >>> assert 'ftarget' in es.stop() and es.result[3] < 1800
+    >>> # mixing integer and fixed variables
+    >>> es = cma.CMA(5 * [1], 1, {'verbose':-9, 'integer_variables':[1,2,4],
+    ...                           'fixed_variables':{1:0}})
+    >>> assert es.opts['integer_variables'] == [1, 3]
+    >>> # TODO: do more testing here or in the class
 
     Parallel objective:
 
